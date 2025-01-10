@@ -15,14 +15,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("select distinct u from User u " +
             "left join fetch u.tasks " +
-            "where (:name is null or u.name = :name) " +
+            "where (:firstName is null or u.firstName = :firstName) " +
             "and (:lastName is null or u.lastName = :lastName)")
-    List<User> findByOptionalNameAndLastNameWithTasks(@Param("name") String name, @Param("lastName") String lastName, PageRequest pageRequest);
+    List<User> findByOptionalNameAndLastNameWithTasks(@Param("firstName") String firstName, @Param("lastName") String lastName, PageRequest pageRequest);
 
     @Query("select distinct u from User u " +
-            "where (:name is null or u.name = :name) " +
+            "where (:firstName is null or u.firstName = :firstName) " +
             "and (:lastName is null or u.lastName = :lastName)")
-    List<User> findByOptionalNameAndLastName(@Param("name") String name, @Param("lastName") String lastName);
+    List<User> findByOptionalNameAndLastName(@Param("firstName") String firstName, @Param("lastName") String lastName);
 
     Optional<User> findByEmail(String email);
+
+    @Query("select u from User u " +
+            "left join fetch u.tasks " +
+            "where u.id = :id")
+    User findUserWithTasksById(Long id);
 }

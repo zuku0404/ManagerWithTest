@@ -1,11 +1,11 @@
-package com.example.enigma.model.entity.task_dto.mapper;
+package com.example.enigma.model.task_dto.mapper;
 
 import com.example.enigma.model.entity.Task;
 import com.example.enigma.model.entity.User;
-import com.example.enigma.model.entity.task_dto.TaskDto;
-import com.example.enigma.model.entity.task_dto.TaskWithoutIdDto;
-import com.example.enigma.model.entity.task_dto.TaskWithoutUserDto;
-import com.example.enigma.model.entity.user_dto.mapper.UserDtoMapper;
+import com.example.enigma.model.task_dto.TaskDto;
+import com.example.enigma.model.task_dto.TaskWithoutIdDto;
+import com.example.enigma.model.task_dto.TaskWithoutUserDto;
+import com.example.enigma.model.user_dto.mapper.UserDtoMapper;
 
 import java.util.List;
 

@@ -3,17 +3,19 @@
 
 CREATE TABLE users (
     id bigint not null primary key auto_increment,
-    name VARCHAR(100),
-    last_name VARCHAR(100),
-    email VARCHAR(100)
+    first_name VARCHAR(100) not null,
+    last_name VARCHAR(100) not null,
+    email VARCHAR(100) unique not null,
+    password VARCHAR(100) not null,
+    role VARCHAR(10) not null
 );
 
 CREATE TABLE tasks (
     id bigint not null primary key auto_increment,
-    title VARCHAR(255),
-    description TEXT,
-    task_status VARCHAR(20),
-    deadline DATE
+    title VARCHAR(255) unique not null,
+    description TEXT not null,
+    task_status VARCHAR(20) not null,
+    deadline DATE not null
 );
 
 CREATE TABLE user_task (

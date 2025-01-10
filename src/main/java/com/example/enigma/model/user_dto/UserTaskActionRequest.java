@@ -1,4 +1,4 @@
-package com.example.enigma.model.entity.user_dto;
+package com.example.enigma.model.user_dto;
 
 import com.example.enigma.model.Action;
 

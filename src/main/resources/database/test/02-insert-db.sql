@@ -1,22 +1,13 @@
 --liquibase formatted sql
 --changeset zuku:1
 
-INSERT INTO users (name, last_name, email)
-VALUES ('name_1', 'lastName_1', 'name.lastName1@example.com'),
-       ('name_2', 'lastName_2', 'name.lastName2@example.com'),
-       ('name_3', 'lastName_3', 'name.lastName3@example.com'),
-       ('name_4', 'lastName_4', 'name.lastName4@example.com'),
-       ('name_5', 'lastName_5', 'name.lastName5@example.com'),
-       ('name_6', 'lastName_6', 'name.lastName6@example.com'),
-       ('name_7', 'lastName_7', 'name.lastName7@example.com'),
-       ('name_8', 'lastName_8', 'name.lastName8@example.com'),
-       ('name_9', 'lastName_9', 'name.lastName9@example.com'),
-       ('name_10', 'lastName_10', 'name.lastName10@example.com'),
-       ('name_11', 'lastName_11', 'name.lastName11@example.com'),
-       ('name_12', 'lastName_12', 'name.lastName12@example.com'),
-       ('name_12', 'lastName_11', 'name.lastName13@example.com'),
-       ('name_12', 'lastName_12', 'name.lastName14@example.com'),
-       ('name_10', 'lastName_12', 'name.lastName15@example.com');
+INSERT INTO users (first_name, last_name, email, role, password)
+VALUES ('admin', 'adminek', 'admin@wp.pl', 'ROLE_ADMIN', '$2a$10$JTnbPbUPWEiSim8uEG6Ch.oWgjcLIffFuT1liZjds7axqILMS3FuK'),
+       ('user', 'user', 'user1@wp.pl', 'ROLE_USER', '$2a$10$iJWA4ZZGjcWjASTWOjQ4r.zVJAn5f/IoX9vksURUSW6rU/.XqMwlq'),
+       ('user', 'use', 'user2@wp.pl', 'ROLE_USER','$2a$10$f37m682WyxWRQBMicsCr8eZ5YxSteGVYxEP3H3lbJyc1aHoRV4Lcm'),
+       ('user', 'useree', 'user3@wp.pl', 'ROLE_USER','$2a$10$YphUScwadxvQOZQLeybUc.zWcmzFPK0j7zZ7221ZnYM9hIlgo7sMC'),
+       ('userek', 'usereusz', 'user4@wp.pl', 'ROLE_USER','$2a$10$xEqDVR5oqB4mHvSzg70kcu0/bbGDFharzjbBI/e3R8TRlJhxtg/uO'),
+       ('userusz', 'user', 'user5@wp.pl', 'ROLE_USER', '$2a$10$A5vFD8yMyKUkIbkHyL.aUeR3psXd5BGYzM/hVsBVZuNBVbVCfRpK6');
 
 INSERT INTO tasks (title, description, task_status, deadline)
 VALUES ('title_1', 'description_1', 'TO_DO', '2024-11-01'),
@@ -33,21 +24,37 @@ VALUES ('title_1', 'description_1', 'TO_DO', '2024-11-01'),
        ('title_12', 'description_12', 'TO_DO', '2024-11-30');
 
 INSERT INTO user_task (user_id, task_id)
-VALUES (1, 1),
+VALUES (2, 1),
+       (6, 1),
+       (4, 1),
+       (3, 1),
        (2, 2),
-       (1, 3),
+       (5, 3),
+       (6, 3),
+       (2, 3),
        (3, 3),
+       (4, 3),
+       (2, 4),
+       (5, 4),
+       (6, 4),
+       (3, 4),
        (4, 4),
-       (5, 5),
-       (1, 5),
+       (4, 5),
+       (3, 5),
+       (4, 6),
        (6, 6),
-       (7, 7),
+       (2, 6),
+       (5, 7),
+       (4, 8),
+       (5, 8),
        (2, 8),
-       (8, 9),
        (3, 9),
-       (3, 8),
-       (1, 9),
-       (7, 5),
-       (5, 2),
-       (6, 4);
+       (4, 9),
+       (2, 9),
+       (6, 10),
+       (6, 11),
+       (2, 11),
+       (5, 11),
+       (3, 11),
+       (4, 11);
 

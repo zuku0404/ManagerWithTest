@@ -2,10 +2,10 @@ package com.example.enigma.service;
 
 import com.example.enigma.model.entity.Task;
 import com.example.enigma.model.entity.User;
-import com.example.enigma.model.entity.task_dto.TaskDto;
-import com.example.enigma.model.entity.task_dto.TaskWithoutIdDto;
-import com.example.enigma.model.entity.task_dto.TaskWithoutUserDto;
-import com.example.enigma.model.entity.task_dto.mapper.TaskDtoMapper;
+import com.example.enigma.model.task_dto.TaskDto;
+import com.example.enigma.model.task_dto.TaskWithoutIdDto;
+import com.example.enigma.model.task_dto.TaskWithoutUserDto;
+import com.example.enigma.model.task_dto.mapper.TaskDtoMapper;
 import com.example.enigma.sample.TaskUserSampleData;
 import com.example.enigma.exception.ErrorMessage;
 import com.example.enigma.exception.task.TaskNotFoundException;
@@ -15,7 +15,7 @@ import com.example.enigma.exception.user.UserNotFoundException;
 import com.example.enigma.model.Action;
 import com.example.enigma.model.SortDirection;
 import com.example.enigma.model.TaskStatus;
-import com.example.enigma.model.entity.user_dto.UserTaskActionRequest;
+import com.example.enigma.model.user_dto.UserTaskActionRequest;
 import com.example.enigma.repository.TaskRepository;
 import com.example.enigma.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,8 +61,9 @@ public class TaskServiceTest {
     @BeforeEach
     public void setup() {
         pageSize = TaskService.PAGE_SIZE;
-        users = TaskUserSampleData.createUsers();
-        tasks = TaskUserSampleData.createTasks();
+        TaskUserSampleData.createDataSet();
+        users = TaskUserSampleData.users;
+        tasks = TaskUserSampleData.tasks;
     }
 
     @Nested
@@ -409,7 +410,12 @@ public class TaskServiceTest {
                     .filter(t -> t.getId().equals(searchedTask))
                     .findFirst()
                     .orElseThrow();
-            Task newTask = new Task(title, "newTask", TaskStatus.TO_DO, LocalDate.now());
+            Task newTask = Task.builder()
+                    .title(title)
+                    .description("newTask")
+                    .taskStatus(TaskStatus.TO_DO)
+                    .deadline(LocalDate.now())
+                    .build();
             TaskWithoutIdDto taskWithoutIdDto = TaskDtoMapper.mapToTaskWithoutIdDto(newTask);
             given(taskRepository.findByTitle(title)).willReturn(Optional.of(task));
             TitleAlreadyExistsException exception = assertThrows(
@@ -427,7 +433,13 @@ public class TaskServiceTest {
             List<User> userList = users.stream()
                     .filter(user -> userIds.contains(user.getId()))
                     .toList();
-            Task newTask = new Task(title, "newTask", TaskStatus.TO_DO, LocalDate.now(), new HashSet<>(userList));
+            Task newTask = Task.builder()
+                    .title(title)
+                    .description("newTask")
+                    .taskStatus(TaskStatus.TO_DO)
+                    .deadline(LocalDate.now())
+                    .build();
+            userIds.forEach(id -> users.stream().filter(user -> Objects.equals(user.getId(), id)).findFirst().orElseThrow().addTask(newTask) );
             TaskDto expectedResult = TaskDtoMapper.mapToTaskDto(newTask);
             TaskWithoutIdDto taskWithoutIdDto = TaskDtoMapper.mapToTaskWithoutIdDto(newTask);
             given(taskRepository.findByTitle(title)).willReturn(Optional.empty());
@@ -471,7 +483,15 @@ public class TaskServiceTest {
                     .filter(t -> t.getId().equals(taskIdToUpdateUser))
                     .findFirst()
                     .orElseThrow();
-            Task taskUpdated = new Task(task.getId(), newTitle, task.getDescription(), task.getTaskStatus(), task.getDeadline(), task.getUsers());
+            Task taskUpdated = Task.builder()
+                    .id(task.getId())
+                    .title(newTitle)
+                    .description(task.getDescription())
+                    .taskStatus(task.getTaskStatus())
+                    .deadline(task.getDeadline())
+                    .build();
+
+            task.getUsers().forEach(user -> user.addTask(task));
             Task secondTask = tasks.stream()
                     .filter(t -> t.getId().equals(secondTaskId))
                     .findFirst()
@@ -495,7 +515,14 @@ public class TaskServiceTest {
                     .filter(t -> t.getId().equals(taskIdToUpdateUser))
                     .findFirst()
                     .orElseThrow();
-            Task taskUpdated = new Task(task.getId(), newTitle, task.getDescription(), task.getTaskStatus(), task.getDeadline(), task.getUsers());
+            Task taskUpdated = Task.builder()
+                    .id(task.getId())
+                    .title(newTitle)
+                    .description(task.getDescription())
+                    .taskStatus(task.getTaskStatus())
+                    .deadline(task.getDeadline())
+                    .build();
+            task.getUsers().forEach(user -> user.addTask(task));
             TaskWithoutIdDto taskDto = TaskDtoMapper.mapToTaskWithoutIdDto(taskUpdated);
             TaskDto expectedResult = TaskDtoMapper.mapToTaskDto(taskUpdated);
             given(taskRepository.findById(taskIdToUpdateUser)).willReturn(Optional.of(task));
@@ -503,6 +530,8 @@ public class TaskServiceTest {
             given(taskRepository.save(ArgumentMatchers.any(Task.class))).willReturn(taskUpdated);
             TaskDto result = taskService.update(taskIdToUpdateUser, taskDto);
             assertThat(result).isEqualTo(expectedResult);
+            assertThat(result.description()).isEqualTo(task.getDescription());
+            assertThat(result.deadline()).isEqualTo(task.getDeadline());
         }
     }
 
@@ -530,12 +559,21 @@ public class TaskServiceTest {
                     .filter(t -> t.getId().equals(taskIdToChangeStatus))
                     .findFirst()
                     .orElseThrow();
-            Task taskUpdated = new Task(task.getId(), task.getTitle(), task.getDescription(), newStatus, task.getDeadline(), task.getUsers());
+            Task taskUpdated = Task.builder()
+                    .id(task.getId())
+                    .title(task.getTitle())
+                    .description(task.getDescription())
+                    .taskStatus(task.getTaskStatus())
+                    .deadline(task.getDeadline())
+                    .build();
+            task.getUsers().forEach(user -> user.addTask(task));
             given(taskRepository.findById(taskIdToChangeStatus)).willReturn(Optional.of(task));
             given(taskRepository.save(ArgumentMatchers.any(Task.class))).willReturn(taskUpdated);
             TaskDto expectedResult = TaskDtoMapper.mapToTaskDto(taskUpdated);
             TaskDto result = taskService.changeStatus(taskIdToChangeStatus, newStatus);
             assertThat(result).isEqualTo(expectedResult);
+            assertThat(result.description()).isEqualTo(task.getDescription());
+            assertThat(result.deadline()).isEqualTo(task.getDeadline());
         }
     }
 
@@ -617,8 +655,14 @@ public class TaskServiceTest {
                     .orElseThrow();
             Set<User> updatedListOfUser = new HashSet<>(task.getUsers());
             updatedListOfUser.add(user);
-            Task taskUpdated = new Task(task.getId(), task.getTitle(), task.getDescription(), task.getTaskStatus(), task.getDeadline(), updatedListOfUser);
-
+            Task taskUpdated = Task.builder()
+                    .id(task.getId())
+                    .title(task.getTitle())
+                    .description(task.getDescription())
+                    .taskStatus(task.getTaskStatus())
+                    .deadline(task.getDeadline())
+                    .build();
+            updatedListOfUser.forEach(u -> user.addTask(taskUpdated));
             given(taskRepository.findById(taskIdToAddUser)).willReturn(Optional.of(task));
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(taskRepository.save(ArgumentMatchers.any(Task.class))).willReturn(taskUpdated);
@@ -687,8 +731,14 @@ public class TaskServiceTest {
                     .orElseThrow();
             Set<User> updatedListOfUser = new HashSet<>(task.getUsers());
             updatedListOfUser.add(user);
-            Task taskUpdated = new Task(task.getId(), task.getTitle(), task.getDescription(), task.getTaskStatus(), task.getDeadline(), updatedListOfUser);
-
+            Task taskUpdated = Task.builder()
+                    .id(task.getId())
+                    .title(task.getTitle())
+                    .description(task.getDescription())
+                    .taskStatus(task.getTaskStatus())
+                    .deadline(task.getDeadline())
+                    .build();
+            updatedListOfUser.forEach(u -> u.addTask(taskUpdated));
             given(taskRepository.findById(taskIdToRemoveUser)).willReturn(Optional.of(task));
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(taskRepository.save(ArgumentMatchers.any(Task.class))).willReturn(taskUpdated);

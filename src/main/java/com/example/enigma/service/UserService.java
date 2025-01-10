@@ -1,19 +1,22 @@
 package com.example.enigma.service;
 
 import com.example.enigma.model.entity.Task;
-import com.example.enigma.model.entity.user_dto.UserDto;
-import com.example.enigma.model.entity.user_dto.UserWithTaskIdsAndWithoutIdDto;
-import com.example.enigma.model.entity.user_dto.UserWithoutIdAndTasksDto;
-import com.example.enigma.model.entity.user_dto.mapper.UserDtoMapper;
-import com.example.enigma.model.entity.user_dto.UserWithoutTaskDto;
+import com.example.enigma.model.entity.User;
+import com.example.enigma.model.user_dto.UserDto;
+import com.example.enigma.model.user_dto.UserPasswordUpdateDto;
+import com.example.enigma.model.user_dto.UserWithTaskIdsAndWithoutIdDto;
+import com.example.enigma.model.user_dto.UserWithoutTaskDto;
+import com.example.enigma.model.user_dto.mapper.UserDtoMapper;
 import com.example.enigma.exception.ErrorMessage;
 import com.example.enigma.exception.user.EmailAlreadyExist;
 import com.example.enigma.exception.user.UserNotFoundException;
+import com.example.enigma.model.user_dto.mapper.AdminPasswordUpdateDto;
 import com.example.enigma.repository.TaskRepository;
 import com.example.enigma.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,7 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
+    private final PasswordEncoder passwordEncoder;
     public static final int PAGE_SIZE = 2;
 
     public List<UserDto> findAllDetailed(String name, String lastName, int page) {
@@ -47,47 +51,53 @@ public class UserService {
     }
 
     @Transactional
-    public UserWithoutTaskDto create(UserWithoutIdAndTasksDto newUser) {
-        String email = newUser.email();
-        if (userRepository.findByEmail(email).isPresent()) {
+    public UserDto updateUserData(User currentUser, UserWithTaskIdsAndWithoutIdDto updatedUser) {
+        if (!currentUser.getEmail().equals(updatedUser.email()) &&
+                userRepository.findByEmail(updatedUser.email()).isPresent()) {
             throw new EmailAlreadyExist(String.format(ErrorMessage.EMAIL_ALREADY_EXISTS));
         }
-        return UserDtoMapper.mapToUserWithoutTaskDto(
-                userRepository.save(UserDtoMapper.mapUserWithoutIdDtoToUser(newUser)));
+        currentUser = userRepository.findUserWithTasksById(currentUser.getId());
+        if (updatedUser.taskIds() != null) {
+            List<Long> oldTaskIds = currentUser.getTasks().stream()
+                    .map(Task::getId)
+                    .toList();
+
+            List<Long> taskIdsToRemove = oldTaskIds.stream()
+                    .filter(oldTaskId -> !updatedUser.taskIds().contains(oldTaskId))
+                    .toList();
+
+            List<Task> taskToRemove = taskRepository.findAllById(taskIdsToRemove);
+            taskToRemove.forEach(currentUser::removeTask);
+
+            List<Long> taskIdsToAdd = updatedUser.taskIds().stream()
+                    .filter(newTaskId -> !oldTaskIds.contains(newTaskId))
+                    .toList();
+
+            List<Task> taskToAdd = taskRepository.findAllById(taskIdsToAdd);
+            taskToAdd.forEach(currentUser::addTask);
+        }
+
+        currentUser.setFirstName(updatedUser.firstName());
+        currentUser.setEmail(updatedUser.email());
+        currentUser.setLastName(updatedUser.lastName());
+
+        return UserDtoMapper.mapToUserDto(userRepository.save(currentUser));
     }
 
-    @Transactional
-    public UserDto update(Long userId, UserWithTaskIdsAndWithoutIdDto updatedUser) {
-        return userRepository.findById(userId)
-                .map(user -> {
-                    if (!user.getEmail().equals(updatedUser.email()) &&
-                            userRepository.findByEmail(updatedUser.email()).isPresent()) {
-                        throw new EmailAlreadyExist(String.format(ErrorMessage.EMAIL_ALREADY_EXISTS));
-                    }
-                    List<Long> oldTaskIds = user.getTasks().stream()
-                            .map(Task::getId)
-                            .toList();
+    public void editUserPasswordByAdmin(AdminPasswordUpdateDto request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new UserNotFoundException(String.format(ErrorMessage.USER_NOT_FOUND_BY_EMAIL, request.email())));
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+    }
 
-                    List<Long> taskIdsToRemove = oldTaskIds.stream()
-                            .filter(oldTaskId -> !updatedUser.taskIds().contains(oldTaskId))
-                            .toList();
+    public void editUserPasswordByUser(User currentUser, UserPasswordUpdateDto request) throws IllegalArgumentException {
+        if (!passwordEncoder.matches(request.oldPassword(), currentUser.getPassword())) {
+            throw new IllegalArgumentException(ErrorMessage.CURRENT_PASSWORD_INVALID);
+        }
 
-                    List<Task> taskToRemove = taskRepository.findAllById(taskIdsToRemove);
-                    taskToRemove.forEach(user::removeTask);
-
-                    List<Long> taskIdsToAdd = updatedUser.taskIds().stream()
-                            .filter(newTaskId -> !oldTaskIds.contains(newTaskId))
-                            .toList();
-
-                    List<Task> taskToAdd = taskRepository.findAllById(taskIdsToAdd);
-                    taskToAdd.forEach(user::addTask);
-
-                    user.setName(updatedUser.name());
-                    user.setEmail(updatedUser.email());
-                    user.setLastName(updatedUser.lastName());
-
-                    return UserDtoMapper.mapToUserDto(userRepository.save(user));
-                }).orElseThrow(() -> new UserNotFoundException(String.format(ErrorMessage.USER_NOT_FOUND_BY_ID, userId)));
+        currentUser.setPassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(currentUser);
     }
 
     @Transactional

@@ -2,12 +2,14 @@ package com.example.enigma.controller;
 
 import com.example.enigma.model.SortDirection;
 import com.example.enigma.model.TaskStatus;
-import com.example.enigma.model.entity.user_dto.UserTaskActionRequest;
-import com.example.enigma.model.entity.task_dto.TaskDto;
-import com.example.enigma.model.entity.task_dto.TaskWithoutIdDto;
-import com.example.enigma.model.entity.task_dto.TaskWithoutUserDto;
+import com.example.enigma.model.task_dto.TaskDto;
+import com.example.enigma.model.task_dto.TaskWithoutIdDto;
+import com.example.enigma.model.task_dto.TaskWithoutUserDto;
+import com.example.enigma.model.user_dto.UserTaskActionRequest;
 import com.example.enigma.service.TaskService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -56,26 +58,34 @@ public class TaskController {
     }
 
     @PostMapping
-    public TaskDto crateTask(@RequestBody TaskWithoutIdDto newTask){
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    public TaskDto crateTask(@RequestBody @Valid TaskWithoutIdDto newTask){
         return taskService.create(newTask);
     }
 
     @PutMapping("/{id}")
-    public TaskDto editTask(@PathVariable("id") Long id, @RequestBody TaskWithoutIdDto updatedTask){
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    public TaskDto editTask(@PathVariable("id") Long id,
+                            @RequestBody @Valid TaskWithoutIdDto updatedTask){
         return taskService.update(id, updatedTask);
     }
 
     @PatchMapping("/{id}/status")
-    public TaskDto changeTaskStatus(@PathVariable("id") Long id, @RequestBody TaskStatus taskStatus) {
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    public TaskDto changeTaskStatus(@PathVariable("id") Long id,
+                                    @RequestBody TaskStatus taskStatus) {
         return taskService.changeStatus(id, taskStatus);
     }
 
     @PatchMapping("/{id}/users")
-    public TaskDto modifyUserAssignmentToTask(@PathVariable("id") Long id, @RequestBody UserTaskActionRequest userTaskActionRequest) {
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    public TaskDto modifyUserAssignmentToTask(@PathVariable("id") Long id,
+                                              @RequestBody UserTaskActionRequest userTaskActionRequest) {
         return taskService.modifyUserAssignmentToTask(id, userTaskActionRequest);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public void removeTask(@PathVariable("id") Long id) {
         taskService.delete(id);
     }

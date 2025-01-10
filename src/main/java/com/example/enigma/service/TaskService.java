@@ -2,10 +2,10 @@ package com.example.enigma.service;
 
 import com.example.enigma.model.entity.Task;
 import com.example.enigma.model.entity.User;
-import com.example.enigma.model.entity.task_dto.TaskDto;
-import com.example.enigma.model.entity.task_dto.TaskWithoutIdDto;
-import com.example.enigma.model.entity.task_dto.TaskWithoutUserDto;
-import com.example.enigma.model.entity.task_dto.mapper.TaskDtoMapper;
+import com.example.enigma.model.task_dto.TaskDto;
+import com.example.enigma.model.task_dto.TaskWithoutIdDto;
+import com.example.enigma.model.task_dto.TaskWithoutUserDto;
+import com.example.enigma.model.task_dto.mapper.TaskDtoMapper;
 import com.example.enigma.exception.ErrorMessage;
 import com.example.enigma.exception.task.TaskNotFoundException;
 import com.example.enigma.exception.task.TitleAlreadyExistsException;
@@ -14,7 +14,7 @@ import com.example.enigma.exception.user.UserNotFoundException;
 import com.example.enigma.model.Action;
 import com.example.enigma.model.SortDirection;
 import com.example.enigma.model.TaskStatus;
-import com.example.enigma.model.entity.user_dto.UserTaskActionRequest;
+import com.example.enigma.model.user_dto.UserTaskActionRequest;
 import com.example.enigma.repository.TaskRepository;
 import com.example.enigma.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -81,7 +81,12 @@ public class TaskService {
             throw new TitleAlreadyExistsException(String.format(ErrorMessage.TITLE_ALREADY_EXISTS_WITH_TITLE, newTask.title()));
         }
         List<User> users = newTask.usersIds() == null ? new ArrayList<>() : userRepository.findAllById(newTask.usersIds());
-        Task task = new Task(newTask.title(), newTask.description(), newTask.taskStatus(), newTask.deadline());
+        Task task = Task.builder()
+                .title(newTask.title())
+                .description(newTask.description())
+                .taskStatus(newTask.taskStatus())
+                .deadline(newTask.deadline())
+                .build();
         users.forEach(user -> user.addTask(task));
         return TaskDtoMapper.mapToTaskDto(taskRepository.save(task));
     }

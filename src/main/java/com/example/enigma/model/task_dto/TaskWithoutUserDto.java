@@ -1,4 +1,4 @@
-package com.example.enigma.model.entity.task_dto;
+package com.example.enigma.model.task_dto;
 
 import com.example.enigma.model.TaskStatus;
 

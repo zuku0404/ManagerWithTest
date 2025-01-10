@@ -11,9 +11,10 @@ import java.util.Set;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(exclude = "users")
 @Entity
+@AllArgsConstructor
+@Builder
 @Table(name = "tasks")
 public class Task {
     @Id
@@ -26,28 +27,5 @@ public class Task {
     private TaskStatus taskStatus;
     private LocalDate deadline;
     @ManyToMany(mappedBy = "tasks")
-    private Set<User> users = new HashSet<>();
-
-    public Task(String title, String description, TaskStatus taskStatus, LocalDate deadline) {
-        this.title = title;
-        this.description = description;
-        this.taskStatus = taskStatus;
-        this.deadline = deadline;
-    }
-
-    public Task(Long id, String title, String description, TaskStatus taskStatus, LocalDate deadline) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.taskStatus = taskStatus;
-        this.deadline = deadline;
-    }
-
-    public Task(String title, String description, TaskStatus taskStatus, LocalDate deadline, Set<User> users) {
-        this.title = title;
-        this.description = description;
-        this.taskStatus = taskStatus;
-        this.deadline = deadline;
-        this.users = users;
-    }
+    private final Set<User> users = new HashSet<>();
 }

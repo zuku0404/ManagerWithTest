@@ -11,4 +11,6 @@ public final class ErrorMessage {
     public static final String TITLE_ALREADY_EXISTS_WITH_TITLE = "Task with title '%s' already exists";
     public static final String USER_ALREADY_ATTACHED = "User with ID '%s' is already attached to the task";
     public static final String USER_NOT_ATTACHED = "User with ID '%s' is not attached to the task";
+    public static final String LOGIN_EXIST = "Email already in use";
+    public static final String CURRENT_PASSWORD_INVALID = "Invalid current password";
 }

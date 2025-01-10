@@ -1,18 +1,21 @@
 package com.example.enigma.service;
 
-import com.example.enigma.model.entity.Task;
-import com.example.enigma.model.entity.User;
-import com.example.enigma.model.entity.user_dto.UserDto;
-import com.example.enigma.model.entity.user_dto.UserWithTaskIdsAndWithoutIdDto;
-import com.example.enigma.model.entity.user_dto.UserWithoutIdAndTasksDto;
-import com.example.enigma.model.entity.user_dto.UserWithoutTaskDto;
-import com.example.enigma.model.entity.user_dto.mapper.UserDtoMapper;
-import com.example.enigma.sample.TaskUserSampleData;
 import com.example.enigma.exception.ErrorMessage;
 import com.example.enigma.exception.user.EmailAlreadyExist;
 import com.example.enigma.exception.user.UserNotFoundException;
+import com.example.enigma.model.Role;
+import com.example.enigma.model.entity.Task;
+import com.example.enigma.model.entity.User;
+import com.example.enigma.model.task_dto.TaskWithoutUserDto;
+import com.example.enigma.model.user_dto.UserDto;
+import com.example.enigma.model.user_dto.UserPasswordUpdateDto;
+import com.example.enigma.model.user_dto.UserWithTaskIdsAndWithoutIdDto;
+import com.example.enigma.model.user_dto.UserWithoutTaskDto;
+import com.example.enigma.model.user_dto.mapper.AdminPasswordUpdateDto;
+import com.example.enigma.model.user_dto.mapper.UserDtoMapper;
 import com.example.enigma.repository.TaskRepository;
 import com.example.enigma.repository.UserRepository;
+import com.example.enigma.sample.TaskUserSampleData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,16 +26,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -41,6 +46,8 @@ class UserServiceTest {
     UserRepository userRepository;
     @Mock
     TaskRepository taskRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     UserService userService;
@@ -52,8 +59,9 @@ class UserServiceTest {
     @BeforeEach
     public void setup() {
         pageSize = UserService.PAGE_SIZE;
-        users = TaskUserSampleData.createUsers();
-        tasks = TaskUserSampleData.createTasks();
+        TaskUserSampleData.createDataSet();
+        users = TaskUserSampleData.users;
+        tasks = TaskUserSampleData.tasks;
     }
 
     @Nested
@@ -114,7 +122,7 @@ class UserServiceTest {
             List<User> expectedUsers;
             do {
                 expectedUsers = users.stream()
-                        .filter(user -> name == null || user.getName().equals(name))
+                        .filter(user -> name == null || user.getFirstName().equals(name))
                         .filter(user -> lastName == null || user.getLastName().equals(lastName))
                         .skip((long) (pageNumber - 1) * pageSize)
                         .limit(pageSize)
@@ -249,69 +257,38 @@ class UserServiceTest {
     }
 
     @Nested
-    @DisplayName("Tests for create")
-    class CreateUser {
-        @Test
-        void createUserShouldCreateUserWhenEmailDoesNotExist() {
-            User user = new User("mati", "hautameki", "matihautameki@example.com");
-            given(userRepository.save(ArgumentMatchers.any(User.class))).willReturn(user);
-            given(userRepository.findByEmail(user.getEmail())).willReturn(Optional.empty());
-            UserWithoutIdAndTasksDto withoutIdAndTasksDto = UserDtoMapper.mapToUserWithoutIdAndTasksDto(user);
-            UserWithoutTaskDto expectedResult = UserDtoMapper.mapToUserWithoutTaskDto(user);
-            UserWithoutTaskDto result = userService.create(withoutIdAndTasksDto);
-
-            assertThat(result.name()).isEqualTo(expectedResult.name());
-            assertThat(result.lastName()).isEqualTo(expectedResult.lastName());
-            assertThat(result.email()).isEqualTo(expectedResult.email());
-        }
-
-        @Test
-        void createUserShouldThrowExceptionWhenEmailAlreadyExists() {
-            User user = new User("mati", "hautameki", "matihautameki@example.com");
-            given(userRepository.findByEmail(user.getEmail())).willReturn(Optional.of(user));
-            UserWithoutIdAndTasksDto withoutIdAndTasksDto = UserDtoMapper.mapToUserWithoutIdAndTasksDto(user);
-            EmailAlreadyExist exception = assertThrows(
-                    EmailAlreadyExist.class,
-                    () -> userService.create(withoutIdAndTasksDto)
-            );
-            assertThat(exception.getMessage())
-                    .isEqualTo(String.format(ErrorMessage.EMAIL_ALREADY_EXISTS));
-        }
-    }
-
-    @Nested
     @DisplayName("Tests for update")
     class UpdateUser {
-        @Test
-        void updateShouldThrowUserNotFoundExceptionWhenUserDoesNotExist() {
-            long updatedUserId = 1L;
-            User user = new User("mati", "hautameki", "ma@example.com");
-            given(userRepository.findById(updatedUserId)).willReturn(Optional.empty());
-            UserWithTaskIdsAndWithoutIdDto userDto = UserDtoMapper.mapToUserWithTaskIdsAndWithoutIdDto(user);
-            UserNotFoundException exception = assertThrows(
-                    UserNotFoundException.class,
-                    () -> userService.update(updatedUserId, userDto)
-            );
-            assertThat(exception.getMessage())
-                    .isEqualTo(String.format(ErrorMessage.USER_NOT_FOUND_BY_ID, updatedUserId));
-        }
-
         @Test
         void updateShouldThrowEmailAlreadyExistExceptionWhenEmailAlreadyInUse() {
             long updatedUserId = 1L;
             String email = "matihautameki@example.com";
+            User user = User.builder()
+                    .id(updatedUserId)
+                    .firstName("mati")
+                    .lastName("hautameki")
+                    .email("ma@example.com")
+                    .password("user")
+                    .role(Role.ROLE_USER)
+                    .build();
 
-            User user = new User(updatedUserId, "mati", "hautameki", "ma@example.com", new HashSet<>());
-            User anotherUser = new User("antonio", "banderas", email);
+            User anotherUser = User.builder()
+                    .firstName("antonio")
+                    .lastName("banderas")
+                    .email(email)
+                    .build();
 
-            given(userRepository.findById(updatedUserId)).willReturn(Optional.of(user));
             given(userRepository.findByEmail(email)).willReturn(Optional.of(anotherUser));
             UserWithTaskIdsAndWithoutIdDto userDto = UserDtoMapper.mapToUserWithTaskIdsAndWithoutIdDto(
-                    new User(user.getName(), user.getLastName(), email)
+                    User.builder()
+                            .firstName(user.getFirstName())
+                            .lastName(user.getLastName())
+                            .email(email)
+                            .build()
             );
             EmailAlreadyExist exception = assertThrows(
                     EmailAlreadyExist.class,
-                    () -> userService.update(updatedUserId, userDto)
+                    () -> userService.updateUserData(user, userDto)
             );
             assertThat(exception.getMessage())
                     .isEqualTo(String.format(ErrorMessage.EMAIL_ALREADY_EXISTS));
@@ -325,15 +302,255 @@ class UserServiceTest {
             Set<Task> tasksToAdd = tasks.stream()
                     .filter(task -> listTaskToAddIds.contains(task.getId()))
                     .collect(Collectors.toSet());
-            User user = new User(updatedUserId, "mati", "hautameki", "ma@example.com", new HashSet<>());
-            User updatedUser = new User(updatedUserId, "matiXXXX", "hautamekiXXXX", email, tasksToAdd);
+            User user = User.builder()
+                    .id(updatedUserId)
+                    .firstName("mati")
+                    .lastName("hautameki")
+                    .email("ma@example.com")
+                    .password("user")
+                    .role( Role.ROLE_USER)
+                    .build();
 
-            given(userRepository.findById(updatedUserId)).willReturn(Optional.of(user));
+            User updatedUser = User.builder()
+                    .id(updatedUserId)
+                    .firstName("matiXXXX")
+                    .lastName("hautamekiXXXX")
+                    .email(email)
+                    .password("user")
+                    .role( Role.ROLE_USER)
+                    .build();
+            tasksToAdd.forEach(updatedUser::addTask);
+
+            given(userRepository.findUserWithTasksById(updatedUserId)).willReturn(user);
             given(userRepository.save(ArgumentMatchers.any(User.class))).willReturn(updatedUser);
             UserWithTaskIdsAndWithoutIdDto userDto = UserDtoMapper.mapToUserWithTaskIdsAndWithoutIdDto(user);
             UserDto expectedResult = UserDtoMapper.mapToUserDto(updatedUser);
-            UserDto result = userService.update(updatedUserId, userDto);
+            UserDto result = userService.updateUserData(user, userDto);
             assertThat(result).isEqualTo(expectedResult);
+        }
+
+        @Test
+        void updateShouldNotUpdateIfEmailIsTheSame() {
+            long updatedUserId = 1L;
+            String email = "ma@example.com";
+            User user = User.builder()
+                    .id(updatedUserId)
+                    .firstName("mati")
+                    .lastName("hautameki")
+                    .email(email)
+                    .password("user")
+                    .role(Role.ROLE_USER)
+                    .build();
+
+            UserWithTaskIdsAndWithoutIdDto updatedUserDto = new UserWithTaskIdsAndWithoutIdDto(
+                    "mati", "hautameki", email, List.of(1L, 2L)
+            );
+
+            given(userRepository.findUserWithTasksById(updatedUserId)).willReturn(user);
+            given(userRepository.save(ArgumentMatchers.any(User.class))).willReturn(user);
+
+            UserDto result = userService.updateUserData(user, updatedUserDto);
+
+            assertThat(result.email()).isEqualTo(email);
+        }
+
+        @Test
+        void updateShouldUpdateUserWithoutChangingTasksIfNoTaskIdsProvided() {
+            long updatedUserId = 1L;
+
+            User user = User.builder()
+                    .id(updatedUserId)
+                    .firstName("mati")
+                    .lastName("hautameki")
+                    .email("ma@example.com")
+                    .password("user")
+                    .role(Role.ROLE_USER)
+                    .build();
+            UserWithTaskIdsAndWithoutIdDto updatedUserDto = new UserWithTaskIdsAndWithoutIdDto(
+                    "mati", "hautameki", "ma@example.com", null
+            );
+
+            given(userRepository.findUserWithTasksById(updatedUserId)).willReturn(user);
+            given(userRepository.save(ArgumentMatchers.any(User.class))).willReturn(user);
+
+            UserDto result = userService.updateUserData(user, updatedUserDto);
+
+            assertThat(result.tasks().stream().map(TaskWithoutUserDto::id).toList()).isEmpty();
+        }
+
+        @Test
+        void updateShouldNotAddWhenTaskNotFound() {
+            long updatedUserId = 1L;
+            User user = users.stream().filter(u -> u.getId() == updatedUserId).findFirst().orElseThrow();
+            List<Long> newTaskIds = List.of(999L);
+
+            UserWithTaskIdsAndWithoutIdDto updatedUserDto = new UserWithTaskIdsAndWithoutIdDto(
+                    "mati", "hautameki", user.getEmail(), newTaskIds
+            );
+
+            User updatedUser = User.builder()
+                    .id(user.getId())
+                    .firstName(updatedUserDto.firstName())
+                    .lastName(updatedUserDto.lastName())
+                    .email(updatedUserDto.email())
+                    .password(user.getPassword())
+                    .role(user.getRole())
+                    .build();
+
+            given(userRepository.findUserWithTasksById(updatedUserId)).willReturn(user);
+            List<Task> currentTasks = user.getTasks().stream().toList();
+            given(taskRepository.findAllById(anyList())).willReturn(currentTasks);
+            given(taskRepository.findAllById(newTaskIds)).willReturn(Collections.emptyList());
+            given(userRepository.save(any())).willReturn(updatedUser);
+            UserDto result = userService.updateUserData(user, updatedUserDto);
+
+            assertThat(result.tasks()).isEmpty();
+            assertThat(user.getTasks()).isEmpty();
+            verify(taskRepository, times(2)).findAllById(anyList());
+        }
+
+        @Test
+        void updateShouldRemoveTaskFromUserIfTaskIdNoLongerIncluded() {
+            long updatedUserId = 1L;
+            List<Long> updatedTaskIds = List.of(1L);
+            User user = users.stream()
+                    .filter(u -> u.getId() == updatedUserId)
+                    .findFirst()
+                    .orElseThrow();
+
+            UserWithTaskIdsAndWithoutIdDto updatedUserDto = new UserWithTaskIdsAndWithoutIdDto(
+                    "mati", "hautameki", user.getEmail(), updatedTaskIds
+            );
+
+            List<Task> tasksToRemove = user.getTasks().stream()
+                    .filter(task -> !updatedTaskIds.contains(task.getId()))
+                    .toList();
+
+            List<Task> tasksToKeep = user.getTasks().stream()
+                    .filter(task -> updatedTaskIds.contains(task.getId()))
+                    .toList();
+
+            User updatedUser = User.builder()
+                    .id(user.getId())
+                    .firstName(updatedUserDto.firstName())
+                    .lastName(updatedUserDto.lastName())
+                    .email(updatedUserDto.email())
+                    .password(user.getPassword())
+                    .role(user.getRole())
+                    .build();
+            tasksToKeep.forEach(updatedUser::addTask);
+
+            given(userRepository.findUserWithTasksById(updatedUserId)).willReturn(user);
+            given(taskRepository.findAllById(anyList())).willReturn(tasksToRemove);
+            given(taskRepository.findAllById(anyList())).willReturn(Collections.emptyList());
+            given(userRepository.save(any())).willReturn(updatedUser);
+
+            UserDto result = userService.updateUserData(user, updatedUserDto);
+
+            assertThat(result.tasks().stream().map(TaskWithoutUserDto::id).toList()).containsExactlyInAnyOrder(1L);
+            verify(taskRepository, times(2)).findAllById(anyList());
+            verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        void updateShouldThrowExceptionWhenDtoHasEmptyFields() {
+            long updatedUserId = 1L;
+            User user = User.builder()
+                    .id(updatedUserId)
+                    .firstName("mati")
+                    .lastName("hautameki")
+                    .email("ma@example.com")
+                    .password("user")
+                    .role(Role.ROLE_USER)
+                    .build();
+
+            UserWithTaskIdsAndWithoutIdDto updatedUserDto = new UserWithTaskIdsAndWithoutIdDto(
+                    "", "", "", null
+            );
+
+            given(userRepository.findUserWithTasksById(updatedUserId)).willReturn(user);
+            given(userRepository.save(any())).willThrow(new IllegalArgumentException("Invalid input data"));
+
+            assertThatThrownBy(() -> userService.updateUserData(user, updatedUserDto))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Invalid input data");
+
+            verify(userRepository).findUserWithTasksById(updatedUserId);
+        }
+    }
+
+    @Nested
+    @DisplayName("Tests for editUserPasswordByAdmin")
+    class EditUserPasswordByAdmin {
+        @Test
+        void shouldEditUserPasswordByAdminWhenUserExists() {
+            String email = "user@example.com";
+            String newPassword = "new_password";
+            AdminPasswordUpdateDto request = new AdminPasswordUpdateDto(email, newPassword);
+            User user = new User();
+            user.setEmail(email);
+            user.setPassword("old_password");
+
+            given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+            given(passwordEncoder.encode(newPassword)).willReturn("encoded_new_password");
+
+            userService.editUserPasswordByAdmin(request);
+
+            assertThat(user.getPassword()).isEqualTo("encoded_new_password");
+            verify(userRepository).save(user);
+        }
+
+        @Test
+        void shouldThrowExceptionWhenUserNotFoundByEmail() {
+            String email = "user@example.com";
+            String newPassword = "new_password";
+            AdminPasswordUpdateDto request = new AdminPasswordUpdateDto(email, newPassword);
+
+            given(userRepository.findByEmail(email)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> userService.editUserPasswordByAdmin(request))
+                    .isInstanceOf(UserNotFoundException.class)
+                    .hasMessageContaining(String.format(ErrorMessage.USER_NOT_FOUND_BY_EMAIL, request.email()));
+        }
+    }
+
+    @Nested
+    @DisplayName("Tests for editUserPasswordByUser")
+    class EditUserPasswordByUser {
+        @Test
+        void shouldEditUserPasswordByUserWhenOldPasswordIsCorrect() {
+            String oldPassword = "old_password";
+            String newPassword = "new_password";
+            User currentUser = new User();
+            currentUser.setEmail("user@example.com");
+            currentUser.setPassword(passwordEncoder.encode(oldPassword));
+
+            UserPasswordUpdateDto request = new UserPasswordUpdateDto(oldPassword, newPassword);
+
+            given(passwordEncoder.matches(oldPassword, currentUser.getPassword())).willReturn(true);
+            given(passwordEncoder.encode(newPassword)).willReturn("encoded_new_password");
+
+            userService.editUserPasswordByUser(currentUser, request);
+
+            assertThat(currentUser.getPassword()).isEqualTo("encoded_new_password");
+            verify(userRepository).save(currentUser);
+        }
+
+        @Test
+        void shouldThrowExceptionWhenOldPasswordIsIncorrect() {
+            String oldPassword = "wrong_old_password";
+            String newPassword = "new_password";
+            User currentUser = new User();
+            currentUser.setEmail("user@example.com");
+            currentUser.setPassword(passwordEncoder.encode("correct_old_password"));
+
+            UserPasswordUpdateDto request = new UserPasswordUpdateDto(oldPassword, newPassword);
+
+            given(passwordEncoder.matches(oldPassword, currentUser.getPassword())).willReturn(false);
+
+            assertThatThrownBy(() -> userService.editUserPasswordByUser(currentUser, request))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining(ErrorMessage.CURRENT_PASSWORD_INVALID);
         }
     }
 
