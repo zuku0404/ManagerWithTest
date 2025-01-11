@@ -16,7 +16,8 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
 
     @Query("select distinct t from Task t " +
             "left join fetch t.users u " +
-            "where (:user_id is null or u.id = :user_id) " +
+            "where (:user_id is null or exists (" +
+            "   select 1 from t.users u where u.id = :user_id)) " +
             "and (:status is null or t.taskStatus = :status)")
     List<Task> findByOptionalUserAndStatusTaskWithUser(@Param("user_id") Long userId, @Param("status") TaskStatus status, Pageable pageable);
 

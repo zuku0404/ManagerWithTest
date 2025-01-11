@@ -174,6 +174,40 @@ class UserControllerTest {
     }
 
     @Nested
+    @DisplayName("Tests for getCurrentUser API")
+    class GetCurrentUser {
+        @Test
+        @WithMockUser(roles = "USER")
+        void getCurrentUser_ValidId_ShouldReturnUser() throws Exception {
+            User user = users.getFirst();
+            UserDto expectedResult = UserDtoMapper.mapToUserDto(user);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            given(userService.findCurrentUser(user)).willReturn(expectedResult);
+            MockHttpServletResponse response = mockMvc.perform(
+                            get("/api/users/current-user")
+                                    .contentType(MediaType.APPLICATION_JSON))
+                    .andReturn().getResponse();
+
+            String expectedJson = objectMapper.writeValueAsString(expectedResult);
+            assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
+            assertThat(response.getContentAsString()).isEqualTo(expectedJson);
+        }
+
+        @Test
+        @WithMockUser(username = "user", authorities = {"GUEST"})
+        void getCurrentUser_ShouldReturnNotFound_WhenNotLoggedIn() throws Exception {
+            User user = users.getFirst();
+            UserDto expectedResult = UserDtoMapper.mapToUserDto(user);
+            given(userService.findCurrentUser(user)).willReturn(expectedResult);
+
+            mockMvc.perform(get("/api/users/current-user"))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
     @DisplayName("Tests for getUserByEmail API")
     class GetUserByEmail {
         @Test
@@ -225,9 +259,6 @@ class UserControllerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andReturn().getResponse();
             assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
-            System.out.println("Response Status: " + response.getStatus());
-            System.out.println("Response Headers: " + response.getHeaderNames());
-            System.out.println("Response Content: " + response.getContentAsString());
             JSONAssert.assertEquals(objectMapper.writeValueAsString(updatedUser), response.getContentAsString(), JSONCompareMode.LENIENT);
         }
 
@@ -253,7 +284,7 @@ class UserControllerTest {
             UserPasswordUpdateDto request = new UserPasswordUpdateDto("oldPass123", "newPass@123");
             willDoNothing().given(userService).editUserPasswordByUser(users.getFirst(), request);
 
-            mockMvc.perform(post("/api/users/change-password")
+            mockMvc.perform(patch("/api/users/change-password")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -267,7 +298,7 @@ class UserControllerTest {
             UserPasswordUpdateDto request = new UserPasswordUpdateDto("oldPass123", "newPass@123");
             willDoNothing().given(userService).editUserPasswordByUser(users.getFirst(), request);
 
-            mockMvc.perform(post("/api/users/change-password")
+            mockMvc.perform(patch("/api/users/change-password")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -283,7 +314,7 @@ class UserControllerTest {
         void editUserPasswordByAdmin_ShouldChangePassword_WhenAuthorized() throws Exception {
             AdminPasswordUpdateDto request = new AdminPasswordUpdateDto("dasda@wp.pl", "newAdminPass1@23");
             willDoNothing().given(userService).editUserPasswordByAdmin(request);
-            mockMvc.perform(post("/api/users/change-password/admin")
+            mockMvc.perform(patch("/api/users/change-password/admin")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -296,7 +327,7 @@ class UserControllerTest {
         void editUserPasswordByAdmin_ShouldReturnForbidden_WhenNotAdmin() throws Exception {
             AdminPasswordUpdateDto request = new AdminPasswordUpdateDto("dasda@wp.pl", "newAdminPass1@23");
             willDoNothing().given(userService).editUserPasswordByAdmin(request);
-            mockMvc.perform(post("/api/users/change-password/admin")
+            mockMvc.perform(patch("/api/users/change-password/admin")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))

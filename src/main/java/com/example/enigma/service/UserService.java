@@ -45,6 +45,12 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException(String.format(ErrorMessage.USER_NOT_FOUND_BY_ID, id))));
     }
 
+    public UserDto findCurrentUser(User user) {
+        return UserDtoMapper.mapToUserDto(
+                userRepository.findById(user.getId())
+                        .orElseThrow(() -> new UserNotFoundException(String.format(ErrorMessage.USER_NOT_FOUND_BY_ID, user.getId()))));
+    }
+
     public UserDto findUserByEmail(String email) {
         return UserDtoMapper.mapToUserDto(userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException(String.format(ErrorMessage.USER_NOT_FOUND_BY_EMAIL, email))));

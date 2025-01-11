@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -229,6 +230,49 @@ class UserServiceTest {
     }
 
     @Nested
+    @DisplayName("Tests for findCurrentUser")
+    class FindCurrentUser {
+        @Test
+        void findCurrentUser_ShouldReturnUserDto_WhenUserExists() {
+            long searchedId = 1;
+            Optional<User> expectedUser = users.stream()
+                    .filter(user -> user.getId() == searchedId)
+                    .findFirst();
+
+            given(userRepository.findById(searchedId)).willReturn(expectedUser);
+            UserDto expectedResult = UserDtoMapper.mapToUserDto(expectedUser.orElseThrow());
+            UserDto result = userService.findCurrentUser(
+                    User.builder()
+                            .id(1L)
+                            .firstName("alex")
+                            .lastName("alex")
+                            .email("alex@example.com")
+                            .password("alex")
+                            .role(Role.ROLE_ADMIN)
+                            .build());
+
+            assertThat(result).isEqualTo(expectedResult);
+            verify(userRepository, times(1)).findById(searchedId);
+            verifyNoMoreInteractions(userRepository);
+        }
+
+        @Test
+        void findCurrentUser_ShouldThrowUserNotFoundException_WhenUserDoesNotExist() {
+            User user = new User();
+            user.setId(1L);
+            when(userRepository.findById(user.getId())).thenReturn(Optional.empty());
+            UserNotFoundException exception = assertThrows(
+                    UserNotFoundException.class,
+                    () -> userService.findCurrentUser(user)
+            );
+
+            assertEquals(String.format(ErrorMessage.USER_NOT_FOUND_BY_ID, user.getId()), exception.getMessage());
+            verify(userRepository, times(1)).findById(user.getId());
+            verifyNoMoreInteractions(userRepository);
+        }
+    }
+
+    @Nested
     @DisplayName("Tests for findUserByEmail")
     class FindUserByEmail {
         void findUserByEmailShouldReturnUserWhenUserExists() {
@@ -308,7 +352,7 @@ class UserServiceTest {
                     .lastName("hautameki")
                     .email("ma@example.com")
                     .password("user")
-                    .role( Role.ROLE_USER)
+                    .role(Role.ROLE_USER)
                     .build();
 
             User updatedUser = User.builder()
@@ -317,7 +361,7 @@ class UserServiceTest {
                     .lastName("hautamekiXXXX")
                     .email(email)
                     .password("user")
-                    .role( Role.ROLE_USER)
+                    .role(Role.ROLE_USER)
                     .build();
             tasksToAdd.forEach(updatedUser::addTask);
 

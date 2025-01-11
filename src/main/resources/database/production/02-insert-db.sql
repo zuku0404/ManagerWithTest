@@ -2,12 +2,12 @@
 --changeset zuku:1
 
 INSERT INTO users (first_name, last_name, email, role, password)
-VALUES ('admin', 'adminek', 'admin@wp.pl', 'ROLE_ADMIN', '$2a$10$JTnbPbUPWEiSim8uEG6Ch.oWgjcLIffFuT1liZjds7axqILMS3FuK'),
-       ('user', 'user', 'user1@wp.pl', 'ROLE_USER', '$2a$10$iJWA4ZZGjcWjASTWOjQ4r.zVJAn5f/IoX9vksURUSW6rU/.XqMwlq'),
-       ('user', 'use', 'user2@wp.pl', 'ROLE_USER','$2a$10$f37m682WyxWRQBMicsCr8eZ5YxSteGVYxEP3H3lbJyc1aHoRV4Lcm'),
-       ('user', 'useree', 'user3@wp.pl', 'ROLE_USER','$2a$10$YphUScwadxvQOZQLeybUc.zWcmzFPK0j7zZ7221ZnYM9hIlgo7sMC'),
-       ('userek', 'usereusz', 'user4@wp.pl', 'ROLE_USER','$2a$10$xEqDVR5oqB4mHvSzg70kcu0/bbGDFharzjbBI/e3R8TRlJhxtg/uO'),
-       ('userusz', 'user', 'user5@wp.pl', 'ROLE_USER', '$2a$10$A5vFD8yMyKUkIbkHyL.aUeR3psXd5BGYzM/hVsBVZuNBVbVCfRpK6');
+VALUES ('admin', 'adminek', 'admin@wp.pl', 'ROLE_ADMIN', '$2a$10$bfDWSvV..kZkFM6agRDf.euXE2C2YW9VIVzIDnJOA88BpV6aDK3h6'),
+       ('user', 'user', 'user1@wp.pl', 'ROLE_USER', '$2a$10$Me/FzRMJgVM.OqRxUgblNuFn3/fLDA/kJPr5KedUQ6WbWUyZ8gaLi'),
+       ('user', 'use', 'user2@wp.pl', 'ROLE_USER','$2a$10$hPS1jPFI.ESv3/DydiE3Yub1gGTSHGtbcbFCviPpZIfIFFbJnuKUe'),
+       ('user', 'useree', 'user3@wp.pl', 'ROLE_USER','$2a$10$UT2a58NgaIMR9Er0pn9lIOUYi1OMy5YGua2sbSAotwKyYTc.sn6XC'),
+       ('userek', 'usereusz', 'user4@wp.pl', 'ROLE_USER','$2a$10$MFKUuROyXvH8KBg05LSJMuL8GS8PUaLemqahYTK3rTZ9EQT8.c1gS'),
+       ('userusz', 'user', 'user5@wp.pl', 'ROLE_USER', '$2a$10$iLuY6jwqMDVpSdtiifn1AePc0OTEuvwwF1JfnK/zzJgQAZ6QRDQtG');
 
 INSERT INTO tasks (title, description, task_status, deadline)
 VALUES ('title_1', 'description_1', 'TO_DO', '2024-11-01'),

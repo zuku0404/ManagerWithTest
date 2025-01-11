@@ -42,6 +42,12 @@ public class UserController {
         return userService.findUserById(id);
     }
 
+    @GetMapping("/current-user")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    public UserDto getCurrentUser(@AuthenticationPrincipal User user) {
+        return userService.findCurrentUser(user);
+    }
+
     @GetMapping("/emails/{email}")
     public UserDto getUserByEmail(@PathVariable("email") String email) {
         return userService.findUserByEmail(email);
@@ -54,7 +60,7 @@ public class UserController {
         return userService.updateUserData(user, request);
     }
 
-    @PostMapping("/change-password")
+    @PatchMapping("/change-password")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public ResponseEntity<String> editUserPasswordByUser(@AuthenticationPrincipal User user,
                                                          @RequestBody @Valid UserPasswordUpdateDto request) {
@@ -62,7 +68,7 @@ public class UserController {
         return ResponseEntity.ok("Password changed successfully. New password: " + request.newPassword());
     }
 
-    @PostMapping("/change-password/admin")
+    @PatchMapping("/change-password/admin")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> editUserPasswordByAdmin(
             @RequestBody @Valid AdminPasswordUpdateDto request) {

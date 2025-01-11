@@ -9,6 +9,7 @@ import com.example.enigma.model.user_dto.UserTaskActionRequest;
 import com.example.enigma.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,6 +59,7 @@ public class TaskController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public TaskDto crateTask(@RequestBody @Valid TaskWithoutIdDto newTask){
         return taskService.create(newTask);
