@@ -435,7 +435,7 @@ class TaskControllerTest {
                     .andReturn().getResponse();
 
             String expectedJson = objectMapper.writeValueAsString(expectedResult);
-            assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
+            assertThat(response.getStatus()).isEqualTo(HttpStatus.CREATED.value());
             assertThat(response.getContentAsString()).isEqualTo(expectedJson);
         }
 
@@ -461,7 +461,7 @@ class TaskControllerTest {
                     .andReturn().getResponse();
 
             String expectedJson = objectMapper.writeValueAsString(expectedResult);
-            assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
+            assertThat(response.getStatus()).isEqualTo(HttpStatus.CREATED.value());
             assertThat(response.getContentAsString()).isEqualTo(expectedJson);
         }
 
