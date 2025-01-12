@@ -56,7 +56,7 @@ public class UserController {
     @PatchMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public UserDto editUserData(@AuthenticationPrincipal User user,
-                                @RequestBody UserWithTaskIdsAndWithoutIdDto request) {
+                                @RequestBody @Valid UserWithTaskIdsAndWithoutIdDto request) {
         return userService.updateUserData(user, request);
     }
 
