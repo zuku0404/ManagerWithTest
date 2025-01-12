@@ -45,7 +45,7 @@ This approach uses app.yaml to build and start both the application and the data
 ### 2. Option 2: Separate Database Setup
 1. Start the MySQL Database:
     ```bash
-     docker-compose -f mySql-dev.yml up
+     docker-compose -f mySql-dev.yml up -d
     ```
 2. Build the Application: If using Gradle:
     ```bash
